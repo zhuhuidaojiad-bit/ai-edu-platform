@@ -658,16 +658,62 @@ function checkFill(){
   if(G.done)return;G.done=true;var inp=el('fillIn');if(!inp)return;var q=G.qs[G.idx];if(!q)return;
   var userAns = inp.value.trim();
   var correctAns = String(q.answer||'').trim();
+
+  // 解答题/见解析 → 不自动判分，展示解析让用户自检
+  if(correctAns==='见解析'||(q.type==='解答题'&&correctAns.length<5)){
+    G.lastAnswer = userAns||'(已作答)';
+    showSelfCheck(q);
+    return;
+  }
+
   // 尝试多种匹配方式
   var ok = (userAns.toLowerCase() === correctAns.toLowerCase());
   if(!ok){
-    // 数值比较
     var un = parseFloat(userAns), cn = parseFloat(correctAns);
     if(!isNaN(un) && !isNaN(cn) && Math.abs(un-cn)<0.001) ok = true;
   }
   if(ok){G.streakHit=(G.streakHit||0)+1;addXp(10);spawnConfetti();recordAnswer(true);}
   else{G.streakHit=0;addWrong(q,userAns);recordAnswer(false);}
   showFb(ok);
+}
+
+function showSelfCheck(q){
+  // 展示解析，让用户自己判断对错
+  var fb=el('qzFb'),head=el('fbHead'),body=el('fbBody');
+  if(!fb||!head||!body)return;
+  fb.classList.remove('hidden','ok','err');fb.classList.add('ok');
+  head.innerHTML='📝 解答题 — 自行对照解析检查';
+  var h='<div style="background:#fff;padding:14px;border-radius:12px;margin-bottom:10px;line-height:2;">';
+  h+='<div style="font-weight:700;margin-bottom:6px;">📋 你的答案：</div>';
+  h+='<div style="background:var(--primary-lt);padding:12px;border-radius:8px;margin-bottom:10px;">'+(G.lastAnswer||'(未填写)')+'</div>';
+  h+='<div style="font-weight:700;margin-bottom:6px;">✅ 参考解析：</div>';
+  var steps=q.steps;
+  if(steps&&Array.isArray(steps)&&steps.length>0){
+    for(var i=0;i<steps.length;i++){h+='<div class="stp"><span class="stp-n">'+(i+1)+'.</span> '+steps[i]+'</div>';}
+  }
+  h+='<div style="margin-top:10px;line-height:1.9;">'+String(q.explanation||'暂无解析')+'</div></div>';
+  body.innerHTML=h;
+  fb.scrollIntoView({behavior:'smooth',block:'nearest'});
+  // 替换底部按钮为自判按钮
+  var fbBtns=fb.querySelector('.fb-btns');
+  if(fbBtns)fbBtns.innerHTML='<button class="btn pri" onclick="selfCheckOK()">✅ 我做对了</button><button class="btn gho" onclick="selfCheckFail()">❌ 还需加强</button>';
+}
+
+function selfCheckOK(){
+  G.streakHit=(G.streakHit||0)+1;addXp(10);spawnConfetti();recordAnswer(true);
+  var fb=el('qzFb');if(fb){fb.classList.add('ok');fb.classList.remove('err');}
+  var fbBtns=fb?fb.querySelector('.fb-btns'):null;
+  if(fbBtns)fbBtns.innerHTML='<button class="btn pri" onclick="nextQ()">下一题 👉</button><button class="btn gho" onclick="retryQ()">再试一次 🔄</button>';
+  toast('✅ 很棒！继续加油！');
+}
+
+function selfCheckFail(){
+  var q=G.qs[G.idx];if(!q)return;
+  G.streakHit=0;addWrong(q,G.lastAnswer||'未填写');recordAnswer(false);
+  var fb=el('qzFb');if(fb){fb.classList.remove('ok');fb.classList.add('err');}
+  var fbBtns=fb?fb.querySelector('.fb-btns'):null;
+  if(fbBtns)fbBtns.innerHTML='<button class="btn pri" onclick="nextQ()">下一题 👉</button><button class="btn gho" onclick="retryQ()">再试一次 🔄</button>';
+  toast('📕 已加入错题本，多加练习！');
 }
 
 function showFb(ok){
