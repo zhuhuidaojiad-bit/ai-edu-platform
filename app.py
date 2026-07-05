@@ -6,8 +6,9 @@ import os, json, uuid, sqlite3
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory
 
-app = Flask(__name__, static_folder='.', static_url_path='')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'edu.db')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path='')
+DB_PATH = os.path.join(BASE_DIR, 'data', 'edu.db')
 
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -55,11 +56,13 @@ init_db()
 # ── Routes ──
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/<path:path>')
 def static_files(path):
-    return send_from_directory('.', path)
+    if path.startswith('api/'):
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+    return send_from_directory(BASE_DIR, path)
 
 @app.route('/api/validate_code', methods=['POST'])
 def api_validate_code():
