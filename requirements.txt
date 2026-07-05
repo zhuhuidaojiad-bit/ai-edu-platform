@@ -1,0 +1,2 @@
+# AI 智慧学伴 — Python标准库实现，无需额外依赖
+# 使用 sqlite3 + http.server 内置模块

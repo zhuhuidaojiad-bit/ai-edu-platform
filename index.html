@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="AI 智慧学伴 — 面向初中至高中学生的智能学习平台，涵盖数学、物理、化学等9门学科的海量真题练习">
+<meta name="keywords" content="AI学习,高考真题,中考真题,在线题库,智能学习,KaTeX数学">
+<meta name="theme-color" content="#FF6B9D">
+<meta property="og:title" content="AI 智慧学伴 — 快乐学习平台">
+<meta property="og:description" content="面向初中至高中学生的智能学习平台，涵盖海量真题与AI智能辅导">
+<meta property="og:type" content="website">
+<title>AI 智慧学伴 — 快乐学习平台</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<header class="tb">
+  <div class="tb-l">
+    <div class="logo">🎓</div>
+    <div>
+      <div class="logo-t">AI 智慧学伴</div>
+      <div class="logo-sub">每天进步一点点 ✨</div>
+    </div>
+  </div>
+  <nav class="gd-nav" id="gdNav">
+    <!-- 年级导航由 JS 动态渲染，硬编码作为无JS降级 -->
+    <button class="gd-btn active" data-grade="初中">🏫 初中</button>
+    <button class="gd-btn" data-grade="高一">📗 高一</button>
+    <button class="gd-btn" data-grade="高二">📘 高二</button>
+    <button class="gd-btn" data-grade="高三">📙 高三</button>
+  </nav>
+  <div class="tb-r">
+    <div class="timer-badge hidden" id="timerBadge">⏱ <span id="timerDisplay">--:--</span></div>
+    <button class="user-btn" id="userBtn" onclick="showLoginModal()" title="切换用户">👤 <span id="userName">点击登录</span></button>
+    <div class="xp-badge" id="xpBadge">⭐ <span id="xpCount">0</span> XP</div>
+    <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span> 天</div>
+    <button class="ic-btn" data-panel="wrongbook">📕<span class="ic-dot" id="wrongBadge">0</span></button>
+    <button class="ic-btn" data-panel="errorrank">🏆</button>
+    <button class="ic-btn" data-panel="aichat">🤖</button>
+    <button class="ic-btn" data-panel="report">📊</button>
+            <button class="ic-btn" data-panel="hyperframes">🎬</button>
+  </div>
+</header>
+
+<!-- 科目标签 -->
+<nav class="sj-nav" id="sjNav"></nav>
+
+<!-- 题型筛选 -->
+<div class="tp-bar" id="tpBar">
+  <span class="tp-lbl">📋 题型</span>
+  <div class="tp-tags" id="tpTags"></div>
+</div>
+
+<!-- 主区域 -->
+<main class="main" id="main">
+
+  <!-- 趣味统计条 -->
+  <div class="fun-stats" id="funStats">
+    <div class="fun-stat" id="funDate">📅 加载中...</div>
+    <div class="fun-stat" id="funCountdown">⏳ 加载中...</div>
+    <div class="fun-stat" id="funTodayGoal">🎯 加载中...</div>
+    <div class="fun-stat">✨ 连对：<b id="streakHit">0</b>题</div>
+  </div>
+
+  <!-- 进度条 -->
+  <div class="pg" id="pg">
+    <div class="pg-track"><div class="pg-bar" id="pgBar"></div></div>
+    <span class="pg-num" id="pgNum">0/0</span>
+  </div>
+
+  <!-- 答题卡片 -->
+  <div id="qzArea">
+    <div class="qz-card" id="qzCard">
+      <div class="qz-top">
+        <span class="qz-badge grade" id="qzGrade">高三</span>
+        <span class="qz-badge subj" id="qzSubj">数学</span>
+        <span class="qz-badge type" id="qzType">选择题</span>
+        <span class="qz-badge diff" id="qzDiff">⭐⭐⭐</span>
+        <span class="qz-badge topic" id="qzTopic">函数</span>
+      </div>
+      <div class="qz-body" id="qzBody">题目加载中...</div>
+      <div class="qz-opts" id="qzOpts"></div>
+      <div class="qz-fb hidden" id="qzFb">
+        <div class="fb-head" id="fbHead"></div>
+        <div class="fb-body" id="fbBody"></div>
+        <div class="fb-btns">
+          <button class="btn pri" id="btnNext" onclick="nextQ()">下一题 👉</button>
+          <button class="btn gho" onclick="retryQ()">再试一次 🔄</button>
+        </div>
+      </div>
+    </div>
+    <!-- 全部完成 -->
+    <div class="qz-card hidden" id="qzDone" style="text-align:center;padding:60px 20px;">
+      <div class="done-icon">🎉</div>
+      <h2 style="font-size:24px;margin:12px 0;color:var(--txt);">太厉害了！全部完成！</h2>
+      <p style="color:var(--sub);margin-bottom:20px;">你已经掌握了这个科目下的所有题目</p>
+      <button class="btn pri" onclick="resetQ()">🔄 重新挑战</button>
+    </div>
+  </div>
+
+  <!-- 工具面板 -->
+  <div class="pn hidden" id="pnWrong">
+    <div class="pn-head"><h3>📕 我的错题本</h3><button class="btn gho sm" onclick="closePn()">✕</button></div>
+    <div class="pn-ft" id="wrongFt"></div>
+    <div class="pn-ls" id="wrongLs"></div>
+  </div>
+  <div class="pn hidden" id="pnRank">
+    <div class="pn-head"><h3>🏆 易错题排行榜</h3><button class="btn gho sm" onclick="closePn()">✕</button></div>
+    <div class="pn-ls" id="rankLs"></div>
+  </div>
+  <div class="pn hidden" id="pnAI">
+    <div class="pn-head"><h3>🤖 AI 学习助手</h3><button class="btn gho sm" onclick="closePn()">✕</button></div>
+    <div class="chat-ms" id="chatMs"><div class="chat-b ai">👋 嘿！我是你的AI学习伙伴～选错题我会帮你分析，加油！💪</div></div>
+    <div class="chat-typing hidden" id="chatTyping">🤔 AI正在思考中...</div>
+    <div class="chat-qk" id="chatQk">
+      <button class="qk-btn" data-q="这道题我不懂">📖 我不懂这题</button>
+      <button class="qk-btn" data-q="帮我分析错因">🔍 分析错因</button>
+      <button class="qk-btn" data-q="推荐类似题目">💡 推荐练习</button>
+    </div>
+    <div class="chat-sd"><input class="chat-in" id="chatIn" placeholder="问AI学习伙伴任何问题..."><button class="btn pri sm" id="chatSend">发送</button></div>
+  </div>
+  <div class="pn hidden" id="pnRpt">
+    <div class="pn-head"><h3>📊 学习报告</h3><button class="btn gho sm" onclick="closePn()">✕</button></div>
+    <div id="rptCt"></div>
+  </div>
+
+  <div class="pn hidden" id="pnHF">
+    <div class="pn-head"><h3>🎬 学习视频生成</h3><button class="btn gho sm" onclick="closePn()">✕</button></div>
+
+    <div class="hf-form">
+      <div class="hf-row">
+        <div class="hf-field">
+          <label class="hf-label">🎨 视频模板</label>
+          <select class="hf-select" id="hfEduTemplate" onchange="onHfEduTemplateChange()">
+            <option value="eduTitle">📚 学习标题片头 — 知识点标题动画</option>
+            <option value="eduQuote">💬 每日金句 — 名言佳句展示</option>
+            <option value="eduCard">📋 知识卡片 — 知识点详解卡片</option>
+            <option value="custom">🎨 自定义HTML — 自己编写HTML</option>
+          </select>
+        </div>
+        <div class="hf-field">
+          <label class="hf-label">📐 分辨率</label>
+          <select class="hf-select" id="hfEduResolution">
+            <option value="landscape">横屏 1920×1080</option>
+            <option value="portrait">竖屏 1080×1920</option>
+            <option value="square">方形 1080×1080</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 动态字段区 -->
+      <div id="hfEduFields">
+        <div class="hf-field">
+          <label class="hf-label">📝 主标题</label>
+          <input class="hf-input" id="hfEduTitle" placeholder="输入标题文字...">
+        </div>
+        <div class="hf-field">
+          <label class="hf-label">📌 副标题 / 作者</label>
+          <input class="hf-input" id="hfEduSubtitle" placeholder="可选：副标题或署名...">
+        </div>
+        <div class="hf-row">
+          <div class="hf-field">
+            <label class="hf-label">🎯 标签文字</label>
+            <input class="hf-input" id="hfEduBadge" placeholder="如：知识点、每日金句...">
+          </div>
+          <div class="hf-field">
+            <label class="hf-label">😊 图标 Emoji</label>
+            <input class="hf-input" id="hfEduEmoji" placeholder="如：📚、💡、📖...">
+          </div>
+        </div>
+        <div class="hf-field" id="hfEduBodyField">
+          <label class="hf-label">📄 正文内容（知识卡片用）</label>
+          <textarea class="hf-textarea" id="hfEduBody" rows="4" placeholder="填写知识点的简要说明..."></textarea>
+        </div>
+        <div class="hf-row">
+          <div class="hf-field">
+            <label class="hf-label">🔤 标题字号</label>
+            <input class="hf-input" type="number" id="hfEduFontSize" value="48" min="24" max="96">
+          </div>
+          <div class="hf-field">
+            <label class="hf-label">⏱️ 视频时长（秒）</label>
+            <input class="hf-input" type="number" id="hfEduDuration" value="5" min="3" max="15">
+          </div>
+        </div>
+      </div>
+
+      <!-- 自定义HTML区 -->
+      <div id="hfEduCustom" style="display:none;">
+        <div class="hf-field">
+          <label class="hf-label">🧩 自定义 HTML</label>
+          <textarea class="hf-textarea" id="hfEduHtml" rows="10" placeholder="粘贴完整的 HTML 代码..."></textarea>
+        </div>
+      </div>
+
+      <button class="btn pri" onclick="generateEduVideo()" style="width:100%;justify-content:center;padding:14px;">
+        🎬 生成学习视频
+      </button>
+    </div>
+
+    <div class="hf-loading hidden" id="hfEduLoading">
+      <div class="hf-loading-dots"><span></span><span></span><span></span></div>
+      <span id="hfEduLoadingText">正在渲染视频...（约需30-60秒）</span>
+    </div>
+    <div class="hf-error hidden" id="hfEduError"></div>
+    <div class="hf-result hidden" id="hfEduResult">
+      <video id="hfEduVideo" controls style="width:100%;border-radius:16px;max-height:400px;"></video>
+    </div>
+  </div>
+
+</main>
+
+<!-- 撒花效果容器 -->
+<div class="confetti-container" id="confettiContainer"></div>
+
+<!-- 登录弹窗 -->
+<div class="modal-overlay hidden" id="loginModal">
+  <div class="modal-card" id="loginCard">
+    <div class="modal-icon">🎓</div>
+    <h2 class="modal-title">欢迎来到 AI 智慧学伴</h2>
+    <p class="modal-sub">输入昵称和访问码开始学习</p>
+    <input class="modal-input" id="loginInput" placeholder="请输入你的昵称..." maxlength="20" autocomplete="off">
+    <input class="modal-input" id="accessCodeInput" placeholder="请输入访问码..." maxlength="30" autocomplete="off" style="margin-top:8px;">
+    <div class="modal-error" id="loginError"></div>
+    <div class="modal-users" id="loginUserList"></div>
+    <button class="btn pri" id="loginBtn" onclick="doLogin()" style="width:100%;justify-content:center;">🚀 验证并进入学习</button>
+    <p class="modal-hint">首次登录将进行简短采访 · 访问码请向老师获取</p>
+  </div>
+  <!-- 欢迎语 + 倒计时 -->
+  <div class="modal-card hidden" id="welcomeCard">
+    <div class="modal-icon">👋</div>
+    <h2 class="modal-title" id="welcomeTitle">欢迎回来！</h2>
+    <div class="welcome-msg" id="welcomeMsg"></div>
+    <div class="welcome-msg" id="countdownMsg"></div>
+    <button class="btn pri" onclick="enterAppAfterWelcome()" style="width:100%;justify-content:center;margin-top:12px;">📚 继续学习</button>
+  </div>
+  <!-- 采访向导 -->
+  <div class="modal-card hidden" id="onboardCard">
+    <div class="onboard-steps" id="onboardSteps">
+      <span class="os-dot active" data-step="1">1</span><span class="os-line"></span>
+      <span class="os-dot" data-step="2">2</span><span class="os-line"></span>
+      <span class="os-dot" data-step="3">3</span>
+    </div>
+    <div id="onboardContent"></div>
+    <div class="onboard-actions">
+      <button class="btn gho sm" id="onboardBack" onclick="onboardPrev()" style="display:none;">⬅ 上一步</button>
+      <button class="btn pri" id="onboardNext" onclick="onboardNext()">下一步 ➡</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" defer></script>
+<script src="js/data.js" defer></script>
+<script src="js/gaokao_questions.js" defer></script>
+<script src="js/gaoyi_questions.js" defer></script>
+<script src="js/gaoer_questions.js" defer></script>
+<script src="js/anhui_zhongkao.js" defer></script>
+<script src="js/hard_questions.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>

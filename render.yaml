@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ai-edu-platform
+    env: python
+    buildCommand: ""
+    startCommand: python3 server.py
+    envVars:
+      - key: PORT
+        value: 5050
