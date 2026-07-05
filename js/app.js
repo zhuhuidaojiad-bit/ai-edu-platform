@@ -881,14 +881,24 @@ var wrongBook = [];
 
 function loadWrongBook(){
   try{
-    var saved = localStorage.getItem(userKey('wrongbook'));
+    var key = userKey('wrongbook');
+    var saved = localStorage.getItem(key);
+    if(!saved) saved = sessionStorage.getItem(key);
     if(saved){wrongBook = JSON.parse(saved);}
-    else{wrongBook = [];} // 不再使用硬编码示例数据
+    else{wrongBook = [];}
   }catch(e){wrongBook=[];}
+  updateBadge();
 }
 
 function saveWrongBook(){
-  try{localStorage.setItem(userKey('wrongbook'),JSON.stringify(wrongBook));}catch(e){}
+  try{
+    var key = userKey('wrongbook');
+    var data = JSON.stringify(wrongBook);
+    localStorage.setItem(key, data);
+    // 双重确认：同时存到sessionStorage防止丢失
+    sessionStorage.setItem(key, data);
+    console.log('💾 错题本已保存: '+key+' ('+wrongBook.length+'道)');
+  }catch(e){console.warn('保存错题本失败:',e);}
 }
 
 function addWrong(q,ua){

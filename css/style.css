@@ -342,6 +342,31 @@ input:focus-visible,select:focus-visible{outline:3px solid var(--primary);outlin
 .welcome-msg .wm-name{color:var(--primary);font-weight:800}
 .welcome-msg .wm-days{color:var(--danger);font-weight:800}
 
+/* ═══════════ FLOATING AI BUTTON ═══════════ */
+.float-ai-btn{
+  position:fixed;bottom:24px;right:24px;z-index:999;
+  width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,#6366F1,#8B5CF6);
+  color:#FFF;font-size:26px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 6px 24px rgba(99,102,241,.4);
+  transition:all .3s ease;border:none;flex-direction:column;gap:0;
+}
+.float-ai-btn:hover{
+  transform:scale(1.1);box-shadow:0 8px 32px rgba(99,102,241,.5);
+  width:auto;border-radius:30px;padding:0 20px;gap:2px;
+}
+.float-ai-label{
+  font-size:10px;font-weight:700;display:none;white-space:nowrap;
+}
+.float-ai-btn:hover .float-ai-label{display:block;}
+.float-ai-btn:hover{font-size:22px;}
+
+@keyframes aiPulse{
+  0%,100%{box-shadow:0 6px 24px rgba(99,102,241,.4)}
+  50%{box-shadow:0 6px 40px rgba(99,102,241,.7)}
+}
+.float-ai-btn{animation:aiPulse 2s ease-in-out infinite}
+
 /* ═══════════ RESPONSIVE ═══════════ */
 @media(max-width:768px){
   .tb{padding:0 10px;gap:6px}.logo-t{display:none}.logo-sub{display:none}
