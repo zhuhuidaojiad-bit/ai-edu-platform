@@ -180,5 +180,56 @@ def add_no_cache(response):
     response.headers['Expires'] = '0'
     return response
 
+@app.route('/api/ocr', methods=['POST'])
+def api_ocr():
+    """OCR 图片识别 — 提取图片中的文字"""
+    import base64, tempfile
+    data = request.get_json()
+    img_b64 = data.get('image', '')
+    if not img_b64 or len(img_b64) < 100:
+        return jsonify({'success': False, 'error': '图片数据为空'})
+
+    # 去掉 data:image/...;base64, 前缀
+    if ',' in img_b64:
+        img_b64 = img_b64.split(',', 1)[1]
+
+    try:
+        img_bytes = base64.b64decode(img_b64)
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            f.write(img_bytes)
+            tmp_path = f.name
+
+        # 尝试使用 easyocr
+        try:
+            import easyocr
+            reader = easyocr.Reader(['ch_sim', 'en'], gpu=False, verbose=False)
+            result = reader.readtext(tmp_path)
+            texts = [item[1] for item in result if item[2] > 0.3]
+            os.unlink(tmp_path)
+            if texts:
+                return jsonify({'success': True, 'text': '\\n'.join(texts), 'method': 'easyocr'})
+        except Exception as e:
+            pass
+
+        # 尝试使用 pytesseract
+        try:
+            from PIL import Image
+            import pytesseract
+            img = Image.open(tmp_path)
+            text = pytesseract.image_to_string(img, lang='chi_sim+eng')
+            os.unlink(tmp_path)
+            if text and text.strip():
+                return jsonify({'success': True, 'text': text.strip(), 'method': 'tesseract'})
+        except:
+            pass
+
+        # Fallback: 返回图片已接收
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        return jsonify({'success': True, 'text': '[图片已接收，请手动输入答案]', 'method': 'none'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5052, debug=False)

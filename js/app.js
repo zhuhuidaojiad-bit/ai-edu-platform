@@ -629,7 +629,10 @@ function renderQ(){
       for(var i=0;i<opts.length;i++){h+='<div class="opt" onclick="pick('+i+')"><span class="lbl">'+(labels[i]||(i+1))+'</span><span>'+opts[i]+'</span></div>';}
       oc.innerHTML=h;oc.classList.remove('hidden');
     }else{
-      oc.innerHTML='<input class="chat-in" id="fillIn" placeholder="请输入你的答案..." style="width:100%;padding:14px;border-radius:16px;border:2px solid var(--brd);font-size:15px;">'+'<button class="btn pri" onclick="checkFill()" style="width:100%;margin-top:10px;">✅ 提交答案</button>';
+      var isOpen=q.type==='解答题';
+      oc.innerHTML='<input class="chat-in" id="fillIn" placeholder="'+(isOpen?'请输入你的答案，或拍照上传...':'请输入你的答案...')+'" style="width:100%;padding:14px;border-radius:16px;border:2px solid var(--brd);font-size:15px;">'
+        +(isOpen?'<div style="display:flex;gap:8px;margin-top:10px;"><input type="file" id="photoInput" accept="image/*" capture="environment" onchange="previewPhoto()" style="display:none;"><button class="btn gho" onclick="document.getElementById(\'photoInput\').click()" style="flex:1;justify-content:center;">📷 拍照上传</button><button class="btn pri" onclick="checkFill()" style="flex:1;justify-content:center;">✅ 提交答案</button></div><div id="photoPreview" style="margin-top:8px;display:none;"></div>'
+        :'<button class="btn pri" onclick="checkFill()" style="width:100%;margin-top:10px;">✅ 提交答案</button>');
     }
     var fb=el('qzFb');if(fb)fb.classList.add('hidden');
     renderMath(el('qzCard'));
@@ -654,24 +657,94 @@ function pick(idx){
   var sh=el('streakHit');if(sh)sh.textContent=G.streakHit||0;
 }
 
+var _capturedPhoto = null;
+function previewPhoto(){
+  var file=el('photoInput').files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    _capturedPhoto=e.target.result;
+    var preview=el('photoPreview');
+    if(preview){
+      preview.style.display='block';
+      preview.innerHTML='<img src="'+_capturedPhoto+'" style="max-width:100%;max-height:250px;border-radius:12px;border:2px solid var(--brd);"><br><span style="font-size:11px;color:var(--sub);">🔍 正在识别图片文字...</span>';
+    }
+    // 调用 OCR API
+    doOCR(_capturedPhoto);
+  };
+  reader.readAsDataURL(file);
+}
+
+function doOCR(imgData){
+  fetch('/api/ocr',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({image:imgData})
+  })
+  .then(function(r){return r.json()})
+  .then(function(data){
+    var preview=el('photoPreview');
+    if(data.success&&data.text&&data.text!=='[图片已接收，请手动输入答案]'){
+      el('fillIn').value=data.text;
+      if(preview)preview.innerHTML='<img src="'+_capturedPhoto+'" style="max-width:100%;max-height:250px;border-radius:12px;border:2px solid var(--brd);"><br><span style="font-size:11px;color:var(--success);">✅ 识别成功 ('+(data.method||'ocr')+') — 已自动填入，可修改</span>';
+    } else {
+      el('fillIn').value='';
+      el('fillIn').placeholder='OCR未识别到文字，请手动输入答案...';
+      if(preview)preview.innerHTML='<img src="'+_capturedPhoto+'" style="max-width:100%;max-height:250px;border-radius:12px;border:2px solid var(--brd);"><br><span style="font-size:11px;color:var(--accent);">⚠️ 未能识别文字，请手动输入答案</span>';
+    }
+  })
+  .catch(function(){
+    el('fillIn').placeholder='OCR服务不可用，请手动输入答案...';
+    var preview=el('photoPreview');
+    if(preview)preview.innerHTML='<img src="'+_capturedPhoto+'" style="max-width:100%;max-height:250px;border-radius:12px;border:2px solid var(--brd);"><br><span style="font-size:11px;color:var(--accent);">⚠️ OCR不可用，请手动输入答案</span>';
+  });
+}
+
+function extractNumbers(s){
+  // 提取所有数字（整数、小数、分数、负数）
+  var nums=[];
+  var re=/-?\d+(?:\.\d+)?/g;
+  var m;
+  while((m=re.exec(s))!==null){nums.push(parseFloat(m[0]));}
+  return nums;
+}
+
+function fuzzyMatch(userAns, correctAns){
+  // 1. 完全匹配（忽略大小写和空格）
+  var u=userAns.toLowerCase().replace(/\s+/g,'').replace(/（/g,'(').replace(/）/g,')');
+  var c=correctAns.toLowerCase().replace(/\s+/g,'').replace(/（/g,'(').replace(/）/g,')');
+  if(u===c) return true;
+
+  // 2. 提取数字比较
+  var un=extractNumbers(userAns), cn=extractNumbers(correctAns);
+  if(cn.length>0 && un.length>=cn.length){
+    var match=true;
+    for(var i=0;i<cn.length;i++){
+      if(Math.abs((un[i]||un[un.length-1])-cn[i])>0.01){match=false;break;}
+    }
+    if(match) return true;
+  }
+
+  // 3. 包含关键结果（correctAns中的短字符串在userAns中）
+  if(c.length>2 && u.indexOf(c)>=0) return true;
+  if(c.length>2 && u.length>0 && c.indexOf(u)>=0) return true;
+
+  // 4. 单个数值比较
+  if(cn.length===1 && un.length>=1 && Math.abs(un[0]-cn[0])<0.01) return true;
+
+  return false;
+}
+
 function checkFill(){
   if(G.done)return;G.done=true;var inp=el('fillIn');if(!inp)return;var q=G.qs[G.idx];if(!q)return;
   var userAns = inp.value.trim();
   var correctAns = String(q.answer||'').trim();
 
-  // 解答题/见解析 → 不自动判分，展示解析让用户自检
-  if(correctAns==='见解析'||(q.type==='解答题'&&correctAns.length<5)){
-    G.lastAnswer = userAns||'(已作答)';
-    showSelfCheck(q);
-    return;
-  }
+  if(!userAns){toast('⚠️ 请输入答案或拍照上传');G.done=false;return;}
 
-  // 尝试多种匹配方式
-  var ok = (userAns.toLowerCase() === correctAns.toLowerCase());
-  if(!ok){
-    var un = parseFloat(userAns), cn = parseFloat(correctAns);
-    if(!isNaN(un) && !isNaN(cn) && Math.abs(un-cn)<0.001) ok = true;
-  }
+  // 智能匹配
+  var ok = fuzzyMatch(userAns, correctAns);
+
   if(ok){G.streakHit=(G.streakHit||0)+1;addXp(10);spawnConfetti();recordAnswer(true);}
   else{G.streakHit=0;addWrong(q,userAns);recordAnswer(false);}
   showFb(ok);
@@ -685,6 +758,9 @@ function showSelfCheck(q){
   head.innerHTML='📝 解答题 — 自行对照解析检查';
   var h='<div style="background:#fff;padding:14px;border-radius:12px;margin-bottom:10px;line-height:2;">';
   h+='<div style="font-weight:700;margin-bottom:6px;">📋 你的答案：</div>';
+  if(_capturedPhoto){
+    h+='<img src="'+_capturedPhoto+'" style="max-width:100%;max-height:400px;border-radius:12px;border:2px solid var(--brd);margin-bottom:10px;">';
+  }
   h+='<div style="background:var(--primary-lt);padding:12px;border-radius:8px;margin-bottom:10px;">'+(G.lastAnswer||'(未填写)')+'</div>';
   h+='<div style="font-weight:700;margin-bottom:6px;">✅ 参考解析：</div>';
   var steps=q.steps;
