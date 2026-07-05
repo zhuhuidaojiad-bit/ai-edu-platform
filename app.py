@@ -164,49 +164,64 @@ def api_generate_codes():
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    """AI学习助手 — 搜索题库 + 知识点解答"""
+    """AI学习助手 — 调用DeepSeek API实现真正的AI对话"""
     data = request.get_json()
     msg = data.get('message', '').strip()
     nickname = data.get('nickname', '同学')
 
-    # 关键词匹配题库
-    reply = ''
+    # 尝试调用豆包API (火山引擎Ark)
+    DOUBAO_KEY = 'ark-b7559c3e-a842-4934-bdc1-6a29f159140d-c2186'
+    try:
+        import urllib.request, ssl
+        req_body = json.dumps({
+            'model': 'doubao-seed-2-1-turbo-260628',
+            'messages': [
+                {'role': 'user', 'content': f'你是AI智慧学伴的AI学习助手，学生叫{nickname}。请用中文回答，语气亲切像学长学姐。回答控制在300字以内，多举具体学科例子。结尾给一个学习建议。'},
+                {'role': 'user', 'content': msg}
+            ],
+            'max_tokens': 1200
+        }).encode('utf-8')
+        req = urllib.request.Request('https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+            data=req_body,
+            headers={'Authorization': f'Bearer {DOUBAO_KEY}', 'Content-Type': 'application/json'},
+            method='POST')
+        ctx = ssl.create_default_context()
+        resp = urllib.request.urlopen(req, timeout=60, context=ctx)
+        result = json.loads(resp.read())
+        reply = result['choices'][0]['message']['content']
+        return jsonify({'success': True, 'reply': reply, 'model': 'doubao'})
+    except Exception as e:
+        import sys, traceback
+        print(f'Doubao API error: {e}', file=sys.stderr)
+        traceback.print_exc()
+
+    # 本地知识库（DeepSeek不可用时使用）
     topics = {
-        '函数': '函数是高中数学核心。定义域、值域、单调性、奇偶性是基础。建议从集合映射开始理解，多做图像题。',
-        '导数': '导数是高考压轴热点！记住公式：$(x^n)\'=nx^{n-1}$，$(e^x)\'=e^x$，$(\\ln x)\'=1/x$。导数应用：求切线、判断单调性、求极值最值。',
-        '数列': '等差 $a_n=a_1+(n-1)d$，等比 $a_n=a_1q^{n-1}$。求和公式要烂熟于心。递推数列用累加/累乘法。',
-        '三角': '核心公式：$\\sin^2\\alpha+\\cos^2\\alpha=1$，和差公式，倍角公式。记住特殊角(30°,45°,60°)的三角函数值。',
-        '向量': '$\\vec{a}\\cdot\\vec{b}=|\\vec{a}||\\vec{b}|\\cos\\theta$。坐标运算：$\\vec{a}\\cdot\\vec{b}=x_1x_2+y_1y_2$。',
-        '概率': '古典概型：$P=\\frac{有利}{总}$。二项分布、正态分布是考点。注意区分互斥事件和独立事件。',
-        '几何': '解析几何：联立方程+韦达定理。椭圆$e=c/a<1$，双曲线$e=c/a>1$。焦点、准线要分清。',
-        '力学': '牛顿第二定律 $F=ma$。受力分析先画图。动能定理和动量守恒是解题利器。',
-        '电磁': '左手定则判力，右手定则判感生。$F=BIL$，$E=BLv$。楞次定律：增反减同。',
-        '化学': '氧化剂得电子降价，还原剂失电子升价。化学平衡：勒夏特列原理。pH计算：$pH=-\\lg[H^+]$。',
-        '方程': '解方程核心思路：去分母→去括号→移项→合并同类项→系数化1。分式方程记得检验增根。',
-        '圆': '圆的标准方程 $(x-a)^2+(y-b)^2=r^2$。切线性质：圆心到切线距离=半径。弦长公式$2\\sqrt{r^2-d^2}$。',
+        '函数': '定义域是函数的基础！先求定义域再做题。单调性看导数正负，奇偶性看f(-x)与f(x)关系。建议：画图帮助理解，多做图像题。',
+        '导数': '三步走：①求导 ②找驻点(f\'(x)=0) ③判单调区间。压轴题最爱考导数+不等式。必会：$f\'(x)>0$递增，$f\'(x)<0$递减。',
+        '数列': '通项公式+求和公式是核心。等差:$a_n=a_1+(n-1)d$。等比:$a_n=a_1q^{n-1}$。递推数列用累加/累乘/构造法。',
+        '三角': '核心公式必须背：$\sin^2+\cos^2=1$，和差公式，二倍角。特殊角30°45°60°的值要脱口而出。',
+        '向量': '坐标运算是王道！$\vec{a}\cdot\vec{b}=x_1x_2+y_1y_2$。模长$|\vec{a}|=\sqrt{x^2+y^2}$。夹角$\cos\theta=\frac{\vec{a}\cdot\vec{b}}{|\vec{a}||\vec{b}|}$。',
+        '几何': '解析几何万能步骤：设直线→联立→韦达定理→代入条件。椭圆$e<1$，双曲线$e>1$。',
+        '概率': '分步用乘法，分类用加法。超几何分布和二项分布最容易混淆！注意"有放回"vs"无放回"。',
+        '力学': '受力分析三步：①画对象 ②标力 ③建坐标。$F=ma$是核心，动能定理和动量守恒是两大法宝。',
+        '电磁': '电磁感应：$E=BLv$（动生），$E=n\\frac{\\Delta\\Phi}{\\Delta t}$（感生）。楞次定律：增反减同，来拒去留。',
+        '化学': '氧化还原：升失氧，降得还。化学平衡：勒夏特列原理。离子方程式：拆强不拆弱，拆溶不拆沉。',
+        '英语': '阅读理解先看题目再读文章！完形填空找上下文线索。作文套模板+高级词汇=高分。',
     }
 
-    matched = False
     for keyword, answer in topics.items():
         if keyword in msg:
-            reply = f'📚 **{keyword}**\n\n{answer}'
-            matched = True
-            break
+            return jsonify({'success': True, 'reply': f'📚 **{keyword}**\n\n{answer}'})
 
-    if not matched:
-        if '错题' in msg or '错因' in msg:
-            reply = f'🔍 {nickname}，分析错因很重要！\n\n常见错误类型：\n📊 概念混淆（35%）\n📊 计算失误（25%）\n📊 审题不清（20%）\n📊 方法不当（20%）\n\n建议：每天复习3-5道错题，重复练习直到掌握！'
-        elif '推荐' in msg or '练习' in msg:
-            reply = f'💡 {nickname}，基于你的学习情况：\n\n🎯 先复习错题本\n🎯 从薄弱科目开始\n🎯 每天坚持10-15题\n\n告诉我你想练哪个科目？'
-        elif '高考' in msg or '倒计时' in msg:
-            from datetime import date
-            gk = date(2027, 6, 7)
-            days = (gk - date.today()).days
-            reply = f'⏳ 距2027年高考还有 **{days}** 天！\n\n💪 每天进步一点点，坚持就是胜利！'
-        else:
-            reply = f'👋 {nickname}，我是你的AI学习助手！\n\n我可以帮你：\n📖 讲解知识点（函数/导数/数列/三角/向量/概率/几何）\n🔍 分析错题原因\n💡 推荐练习题\n⚡ 解答物理/化学问题\n\n直接问我具体知识点吧！'
+    if '错题' in msg:
+        return jsonify({'success': True, 'reply': f'{nickname}，分析错题三步：\n1️⃣ 判断错误类型（概念/计算/审题）\n2️⃣ 重做一遍不看答案\n3️⃣ 找同类题练3道\n\n建议每天固定时间复习错题本！'})
+    if '高考' in msg or '倒计时' in msg:
+        from datetime import date
+        days = (date(2027, 6, 7) - date.today()).days
+        return jsonify({'success': True, 'reply': f'⏳ 距2027高考还有**{days}天**！\n\n💪 {nickname}，现在开始努力，一切来得及！每天做10道真题，坚持就是胜利！'})
 
-    return jsonify({'success': True, 'reply': reply})
+    return jsonify({'success': True, 'reply': f'{nickname}你好！我可以帮你：\n📖 讲解知识点（输入"函数""导数""数列"等）\n🔍 分析错题（输入"错题"）\n⏳ 高考倒计时（输入"高考"）\n💡 推荐学习方法\n\n试试输入一个知识点吧！'})
 
 @app.route('/api/stats')
 def api_stats():

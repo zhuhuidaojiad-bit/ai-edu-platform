@@ -828,12 +828,28 @@ function showFb(ok){
     h+='<div style="background:#fff;padding:14px;border-radius:12px;line-height:1.9;font-size:14px;">';
     h+='<div style="font-weight:700;margin-bottom:6px;">📝 详细解析</div>';
     h+='<div>'+String(q.explanation||'暂无解析')+'</div></div>';
+    // 存储错题上下文供AI分析
+    G.lastWrongQ = q;
+    G.lastWrongUserAns = G.lastAnswer;
+    h+='<button class="btn pri" onclick="askAIAboutWrong()" style="width:100%;margin-top:10px;justify-content:center;">🤖 AI分析这道错题</button>';
     body.innerHTML=h;
   }
   renderMath(fb);fb.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function nextQ(){G.idx++;renderQ();}
+function askAIAboutWrong(){
+  if(!G.lastWrongQ) return;
+  var q = G.lastWrongQ;
+  var context = '我刚刚做了一道题做错了，请帮我分析：\n\n';
+  context += '【题目】'+q.question+'\n';
+  context += '【我的答案】'+ (G.lastWrongUserAns||'?') +'\n';
+  context += '【正确答案】'+ q.answer +'\n';
+  context += '【题目类型】'+ (q.type||'') +' · '+ (q.topic||'') +'\n\n';
+  context += '请帮我分析：1.我可能错在哪里？2.这道题考什么知识点？3.下次怎么避免？';
+  openPn('aichat');
+  addMsg(context, 'user');
+  sendRealChat(context);
+}
 function retryQ(){G.done=false;renderQ();}
 function resetQ(){G.idx=0;G.done=false;var qd=el('qzDone');if(qd)qd.classList.add('hidden');var qa=el('qzArea');if(qa)qa.classList.remove('hidden');loadQ();}
 function showDone(){
@@ -881,9 +897,7 @@ var wrongBook = [];
 
 function loadWrongBook(){
   try{
-    var key = userKey('wrongbook');
-    var saved = localStorage.getItem(key);
-    if(!saved) saved = sessionStorage.getItem(key);
+    var saved = localStorage.getItem('wrongbook_data');
     if(saved){wrongBook = JSON.parse(saved);}
     else{wrongBook = [];}
   }catch(e){wrongBook=[];}
@@ -892,13 +906,8 @@ function loadWrongBook(){
 
 function saveWrongBook(){
   try{
-    var key = userKey('wrongbook');
-    var data = JSON.stringify(wrongBook);
-    localStorage.setItem(key, data);
-    // 双重确认：同时存到sessionStorage防止丢失
-    sessionStorage.setItem(key, data);
-    console.log('💾 错题本已保存: '+key+' ('+wrongBook.length+'道)');
-  }catch(e){console.warn('保存错题本失败:',e);}
+    localStorage.setItem('wrongbook_data', JSON.stringify(wrongBook));
+  }catch(e){}
 }
 
 function addWrong(q,ua){
@@ -908,11 +917,23 @@ function addWrong(q,ua){
     else{wrongBook.unshift({id:'w'+Date.now(),grade:q.grade||G.grade,subject:q.subject,topic:q.topic||'',question:q.question,options:q.options||[],userAnswer:ua,correctAnswer:q.answer,explanation:q.explanation||'',date:dt(),mastered:false,attemptCount:1});}
     saveWrongBook();
     updateBadge();
-    toast('📕 已加入错题本，加油攻克它！');
+    toast('📕 已加入错题本');
+    // 闪一下错题本图标
+    var wbBtn = document.querySelector('.ic-btn[data-panel=\"wrongbook\"]');
+    if(wbBtn){wbBtn.style.background='var(--danger-lt)';setTimeout(function(){wbBtn.style.background='';},400);}
   }catch(e){console.warn('addWrong error:',e);}
 }
 
-function updateBadge(){var b=el('wrongBadge');if(!b)return;var c=wrongBook.filter(function(w){return!w.mastered;}).length;b.textContent=c;b.style.display=c>0?'flex':'none';}
+function updateBadge(){
+  var b=el('wrongBadge');if(!b)return;
+  var c=wrongBook.filter(function(w){return!w.mastered;}).length;
+  if(c!==parseInt(b.textContent)&&c>0){
+    b.classList.add('bump');
+    setTimeout(function(){b.classList.remove('bump');},300);
+  }
+  b.textContent=c;
+  b.style.display=c>0?'flex':'none';
+}
 
 // ═══════════════════════════════════════════
 // DAILY STATS (localStorage)
@@ -989,7 +1010,33 @@ function applyWB(){
   c.innerHTML=f.map(function(w){var sn=(SUBJECT_CONFIG[w.subject]||{}).name||w.subject;return'<div class="wi'+(w.mastered?' ok':'')+'"><div class="wi-t"><span class="qz-badge grade">'+(w.grade||'高三')+'</span><span class="qz-badge subj">'+sn+'</span>'+(w.topic?'<span class="qz-badge topic">'+w.topic+'</span>':'')+'<span style="font-size:11px;color:var(--muted);margin-left:auto;">📅'+w.date+' · 错'+(w.attemptCount||1)+'次</span></div><div class="wi-q">'+w.question+'</div><div class="wi-a"><span class="ua">❌ '+w.userAnswer+'</span><span class="ca">✅ '+w.correctAnswer+'</span></div><div class="wi-e">💡 '+w.explanation+'</div><div class="wi-acts"><button class="btn '+(w.mastered?'gho':'pri')+' sm" onclick="togWB(\''+w.id+'\')">'+(w.mastered?'标为未掌握':'✅ 标为已掌握')+'</button><button class="btn gho sm" onclick="delWB(\''+w.id+'\')">🗑️</button></div></div>';}).join('');
 }
 function togWB(id){var w=wrongBook.find(function(x){return x.id===id;});if(w){w.mastered=!w.mastered;saveWrongBook();applyWB();updateBadge();}}
-function delWB(id){var i=wrongBook.findIndex(function(x){return x.id===id;});if(i!==-1){wrongBook.splice(i,1);saveWrongBook();applyWB();updateBadge();}}
+function delWB(id){
+  // 先动画再删除
+  var els=document.querySelectorAll('.wi');
+  var found=false;
+  for(var i=0;i<els.length;i++){
+    if(els[i].innerHTML.indexOf(id)>=0){els[i].classList.add('removing');found=true;break;}
+  }
+  setTimeout(function(){
+    var idx=wrongBook.findIndex(function(x){return x.id===id;});
+    if(idx!==-1){wrongBook.splice(idx,1);saveWrongBook();updateBadge();}
+    applyWB();
+    toast('🗑️ 已删除');
+  }, found?250:0);
+}
+function askAIWrongBook(id){
+  var w=wrongBook.find(function(x){return x.id===id;});
+  if(!w)return;
+  var context = '我之前做错了一道题，请帮我重新分析：\n\n';
+  context += '【题目】'+w.question+'\n';
+  context += '【我的答案】'+ (w.userAnswer||'?') +'\n';
+  context += '【正确答案】'+ w.correctAnswer +'\n';
+  context += '【科目】'+ (SUBJECT_CONFIG[w.subject]||{}).name +' · '+ (w.topic||'') +'\n\n';
+  context += '请帮我讲解这道题的解题思路，并给一个类似的练习题。';
+  openPn('aichat');
+  addMsg(context, 'user');
+  sendRealChat(context);
+}
 
 function renderER(){
   var c=el('rankLs');if(!c)return;
@@ -1035,26 +1082,27 @@ async function sendChat(){
 }
 
 async function sendRealChat(userMsg){
-  var typing=el('chatTyping');if(typing)typing.style.display='block';
+  var typing=el('chatTyping');
+  if(typing)typing.classList.remove('hidden');
+  var chatMs=el('chatMs');
+  if(chatMs)chatMs.scrollTop=chatMs.scrollHeight;
+
   try{
     var res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        message:userMsg,
-        nickname:G.username||'同学'
-      }),
+      body:JSON.stringify({message:userMsg, nickname:G.username||'同学'}),
     });
     var data=await res.json();
-    if(typing)typing.style.display='none';
+    if(typing)typing.classList.add('hidden');
     if(data.success){
       addMsg(data.reply,'ai');
     }else{
-      addMsg('抱歉，AI助手暂时无法回复，请稍后再试 🙏','ai');
+      addMsg('抱歉，AI暂时无法回复 🙏','ai');
     }
   }catch(e){
-    if(typing)typing.style.display='none';
-    addMsg('网络异常，AI助手离线中...请检查网络 📡','ai');
+    if(typing)typing.classList.add('hidden');
+    addMsg('网络异常，AI离线中 📡','ai');
   }
 }
 
