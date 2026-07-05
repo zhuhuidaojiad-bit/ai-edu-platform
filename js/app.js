@@ -93,7 +93,7 @@ function showWelcome(data){
   var daysLeft=Math.ceil((gaokao-now)/(1000*60*60*24));
 
   el('welcomeTitle').textContent=greeting+'，'+data.nickname+'！';
-  el('welcomeMsg').innerHTML='<span class="wm-name">'+data.nickname+'</span>，欢迎回来！<br>📅 今天是 '+now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日<br>⏳ 距2027年高考还有 <span class="wm-days">'+daysLeft+'</span> 天<br>⏱ 本次学习时间：<b>'+data.duration_minutes+'分钟</b>';
+  el('welcomeMsg').innerHTML='<span class="wm-name">'+data.nickname+'</span>，欢迎回来！<br>📅 今天是 '+now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日<br>⏳ 距2027年高考还有 <span class="wm-days">'+daysLeft+'</span> 天<br>⏱ 本次学习时间：<b>'+data.duration_minutes+'分钟</b><br><hr style="border:none;border-top:1px solid var(--brd);margin:8px 0;">📊 你的学习数据已就绪 — 错题本、学习报告、个人偏好均已同步 💪';
 
   var expiresAt=new Date(data.expires_at);
   el('countdownMsg').innerHTML='🕐 学习时间截止：<b>'+expiresAt.getHours().toString().padStart(2,'0')+':'+expiresAt.getMinutes().toString().padStart(2,'0')+'</b>';
@@ -556,7 +556,15 @@ function renderHeroBanner(){
   if(gd) for(var s in gd){if(Array.isArray(gd[s])) totalQ += gd[s].length;}
   var banner = document.createElement('div');
   banner.className = 'hero-banner '+gradeClass;
-  banner.innerHTML = '<div class="hero-icon">'+cfg.icon+'</div><div class="hero-title">'+cfg.label+' · 学习之旅</div><div class="hero-sub">共 '+totalQ+' 道题目 · '+(SUBJECT_CONFIG[G.subj]||{}).name+' 专项训练</div><div class="hero-progress">🎯 每天进步一点点，坚持就是胜利！</div>';
+  // 用户个性化数据
+  var wrongCount = wrongBook.filter(function(w){return !w.mastered;}).length;
+  var masteredCount = wrongBook.filter(function(w){return w.mastered;}).length;
+  var todayStats = {};
+  try{todayStats = JSON.parse(localStorage.getItem(userKey('daily'))||'{}');}catch(e){}
+  var today = new Date().toISOString().split('T')[0];
+  var td = todayStats[today] || {total:0,correct:0};
+  var level = G.xp<100?'🌱 新手':G.xp<500?'🌿 学徒':G.xp<2000?'🌳 达人':G.xp<5000?'🏆 高手':G.xp<10000?'💎 大师':'👑 传奇';
+  banner.innerHTML = '<div class="hero-icon">'+cfg.icon+'</div><div class="hero-title">👋 '+G.username+' · '+cfg.label+' · '+level+'</div><div class="hero-sub">📚 题库 '+totalQ+' 题 | ⭐ '+G.xp+' XP | 🔥 连续 '+G.streak+' 天 | 📕 错题 '+wrongCount+' 道 | ✅ 掌握 '+masteredCount+' 道</div><div class="hero-progress">📅 今日 '+td.total+' 题，正确 '+td.correct+' 题'+(td.total>0?' (正确率 '+Math.round(td.correct/td.total*100)+'%)':'')+' | 🎯 每天进步一点点！</div>';
   main.insertBefore(banner, main.firstChild);
 }
 
@@ -1023,23 +1031,20 @@ async function sendRealChat(userMsg){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        messages:[
-          {role:'system',content:'你是"AI智慧学伴"的学习助手。你帮助中学生（初中到高三）解答学科问题。请用中文回答，语气亲切、耐心，像一位学长/学姐。回答控制在200-400字，多用具体例子。学科包括：数学、物理、化学、生物、英语、语文、历史、地理、政治。如果学生问的是具体题目，先引导思考不要直接给答案。结尾可以给一个学习建议或小技巧。'},
-          {role:'user',content:userMsg}
-        ]
+        message:userMsg,
+        nickname:G.username||'同学'
       }),
     });
     var data=await res.json();
     if(typing)typing.style.display='none';
     if(data.success){
-      addMsg(data.content,'ai');
+      addMsg(data.reply,'ai');
     }else{
-      // 降级到本地回复
-      addMsg(getLocalReply(userMsg),'ai');
+      addMsg('抱歉，AI助手暂时无法回复，请稍后再试 🙏','ai');
     }
   }catch(e){
     if(typing)typing.style.display='none';
-    addMsg(getLocalReply(userMsg),'ai');
+    addMsg('网络异常，AI助手离线中...请检查网络 📡','ai');
   }
 }
 

@@ -162,6 +162,52 @@ def api_generate_codes():
     conn.commit(); conn.close()
     return jsonify({'success': True, 'codes': codes, 'count': len(codes)})
 
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    """AI学习助手 — 搜索题库 + 知识点解答"""
+    data = request.get_json()
+    msg = data.get('message', '').strip()
+    nickname = data.get('nickname', '同学')
+
+    # 关键词匹配题库
+    reply = ''
+    topics = {
+        '函数': '函数是高中数学核心。定义域、值域、单调性、奇偶性是基础。建议从集合映射开始理解，多做图像题。',
+        '导数': '导数是高考压轴热点！记住公式：$(x^n)\'=nx^{n-1}$，$(e^x)\'=e^x$，$(\\ln x)\'=1/x$。导数应用：求切线、判断单调性、求极值最值。',
+        '数列': '等差 $a_n=a_1+(n-1)d$，等比 $a_n=a_1q^{n-1}$。求和公式要烂熟于心。递推数列用累加/累乘法。',
+        '三角': '核心公式：$\\sin^2\\alpha+\\cos^2\\alpha=1$，和差公式，倍角公式。记住特殊角(30°,45°,60°)的三角函数值。',
+        '向量': '$\\vec{a}\\cdot\\vec{b}=|\\vec{a}||\\vec{b}|\\cos\\theta$。坐标运算：$\\vec{a}\\cdot\\vec{b}=x_1x_2+y_1y_2$。',
+        '概率': '古典概型：$P=\\frac{有利}{总}$。二项分布、正态分布是考点。注意区分互斥事件和独立事件。',
+        '几何': '解析几何：联立方程+韦达定理。椭圆$e=c/a<1$，双曲线$e=c/a>1$。焦点、准线要分清。',
+        '力学': '牛顿第二定律 $F=ma$。受力分析先画图。动能定理和动量守恒是解题利器。',
+        '电磁': '左手定则判力，右手定则判感生。$F=BIL$，$E=BLv$。楞次定律：增反减同。',
+        '化学': '氧化剂得电子降价，还原剂失电子升价。化学平衡：勒夏特列原理。pH计算：$pH=-\\lg[H^+]$。',
+        '方程': '解方程核心思路：去分母→去括号→移项→合并同类项→系数化1。分式方程记得检验增根。',
+        '圆': '圆的标准方程 $(x-a)^2+(y-b)^2=r^2$。切线性质：圆心到切线距离=半径。弦长公式$2\\sqrt{r^2-d^2}$。',
+    }
+
+    matched = False
+    for keyword, answer in topics.items():
+        if keyword in msg:
+            reply = f'📚 **{keyword}**\n\n{answer}'
+            matched = True
+            break
+
+    if not matched:
+        if '错题' in msg or '错因' in msg:
+            reply = f'🔍 {nickname}，分析错因很重要！\n\n常见错误类型：\n📊 概念混淆（35%）\n📊 计算失误（25%）\n📊 审题不清（20%）\n📊 方法不当（20%）\n\n建议：每天复习3-5道错题，重复练习直到掌握！'
+        elif '推荐' in msg or '练习' in msg:
+            reply = f'💡 {nickname}，基于你的学习情况：\n\n🎯 先复习错题本\n🎯 从薄弱科目开始\n🎯 每天坚持10-15题\n\n告诉我你想练哪个科目？'
+        elif '高考' in msg or '倒计时' in msg:
+            from datetime import date
+            gk = date(2027, 6, 7)
+            days = (gk - date.today()).days
+            reply = f'⏳ 距2027年高考还有 **{days}** 天！\n\n💪 每天进步一点点，坚持就是胜利！'
+        else:
+            reply = f'👋 {nickname}，我是你的AI学习助手！\n\n我可以帮你：\n📖 讲解知识点（函数/导数/数列/三角/向量/概率/几何）\n🔍 分析错题原因\n💡 推荐练习题\n⚡ 解答物理/化学问题\n\n直接问我具体知识点吧！'
+
+    return jsonify({'success': True, 'reply': reply})
+
 @app.route('/api/stats')
 def api_stats():
     conn = get_db()
