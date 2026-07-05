@@ -336,6 +336,16 @@ function doInitSteps(){
       if(!dup) gd[q.subject].push(q);
     });
   }
+  // 合并生成题目（高考/中考/专家题）
+  if(typeof generatedQuestions!=='undefined' && generatedQuestions.length>0){
+    generatedQuestions.forEach(function(q){
+      var gd = allQuestionsByGrade[q.grade]; if(!gd) gd = allQuestionsByGrade[q.grade] = {};
+      if(!gd[q.subject]) gd[q.subject] = [];
+      var dup = false;
+      for(var i=0;i<gd[q.subject].length;i++){if(gd[q.subject][i].id===q.id){dup=true;break;}}
+      if(!dup) gd[q.subject].push(q);
+    });
+  }
   // 合并难题
   if(typeof hardQuestions!=='undefined' && hardQuestions.length>0){
     hardQuestions.forEach(function(q){
@@ -356,14 +366,12 @@ function doInitSteps(){
 // INIT
 // ═══════════════════════════════════════════
 function init(){
-  // 0. 检查会话状态
+  // 检查是否有有效会话
   var savedToken=localStorage.getItem(userKey('session_token'));
-  var savedExpires=localStorage.getItem(userKey('session_expires'));
   var savedUser=localStorage.getItem(userKey('last_user'));
-  if(savedToken&&savedExpires&&savedUser){
+  if(savedToken&&savedUser){
     G.username=savedUser;
     G.sessionToken=savedToken;
-    // 检查会话是否还有效
     fetch('/api/check_session',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -379,16 +387,14 @@ function init(){
         doInitSteps();
       } else {
         localStorage.removeItem(userKey('session_token'));
-        localStorage.removeItem(userKey('session_expires'));
         showLoginModal();
       }
     })
     .catch(function(){showLoginModal();});
     return;
   }
-  if(!G.username){showLoginModal();return;}
-  // 0.1 调试标记
-  var dbg = el('qzBody'); if(dbg) dbg.innerHTML = '⏳ 正在初始化题库...';
+  // 无会话 → 显示登录
+  showLoginModal();
 
   // 1. 从 localStorage 加载错题本
   loadWrongBook();

@@ -3,14 +3,14 @@
    总计 170 题 | 2024年6月生成
    ======================================== */
 
-const GRADE_CONFIG = {
+var GRADE_CONFIG = {
   '初中': { icon: '🏫', subjects: ['math','phys','chem','bio','engl','chin','hist','geo','poli'], label: '初中' },
   '高一': { icon: '📗', subjects: ['math','phys','chem','bio','engl','chin','hist','geo','poli'], label: '高一' },
   '高二': { icon: '📘', subjects: ['math','phys','chem','bio','engl','chin','hist','geo','poli'], label: '高二' },
   '高三': { icon: '📙', subjects: ['math','phys','chem','bio','engl','chin','hist','geo','poli'], label: '高三' },
 };
 
-const SUBJECT_CONFIG = {
+var SUBJECT_CONFIG = {
   math: { name: '数学', icon: '📐', color: '#4F6EF7', bg: '#EEF1FE' },
   phys: { name: '物理', icon: '⚡', color: '#FF6B6B', bg: '#FFF0F0' },
   chem: { name: '化学', icon: '🧪', color: '#2D9C3F', bg: '#EDF9EF' },
@@ -22,7 +22,7 @@ const SUBJECT_CONFIG = {
   poli: { name: '政治', icon: '⚖️', color: '#E74C3C', bg: '#FDEDEC' },
 };
 
-const DEMO_CHUZHONG = {
+var DEMO_CHUZHONG = {
   math: [
     { id:'n初m200',year:2026,grade:'初中',subject:'math',type:'选择题',difficulty:2,topic:`有理数`,question:`下列哪个数是无理数？`,options:[`A. 3.14`,`B. √4`,`C. √2`,`D. 22/7`],answer:`C`,explanation:`无理数是无限不循环小数。√2 = 1.41421356... 是无限不循环小数，而3.14是有限小数，√4=2是整数，22/7是循环小数（3.142857...），因此只有C是无理数。`,steps:[`识别无理数的定义：无限不循环小数。`,`检查每个选项：A是有限小数，B是整数，C是无限不循环小数，D是循环小数。`,`得出结论：√2是无理数。`],source:`DeepSeek AI生成` },
     { id:'n初m201',year:2026,grade:'初中',subject:'math',type:'选择题',difficulty:2,topic:`整式的加减`,question:`化简：3x² - 2x + 1 + ( -x² + 5x - 3 )`,options:[`A. 2x² + 3x - 2`,`B. 4x² + 3x - 2`,`C. 2x² - 3x + 2`,`D. 2x² + 7x - 2`],answer:`A`,explanation:`合并同类项：3x² - x² = 2x²，-2x + 5x = 3x，1 - 3 = -2，结果为2x² + 3x - 2。`,steps:[`去括号：3x² - 2x + 1 - x² + 5x - 3。`,`合并x²项：3x² - x² = 2x²。`,`合并x项：-2x + 5x = 3x。`,`合并常数项：1 - 3 = -2。`,`结果：2x² + 3x - 2。`],source:`DeepSeek AI生成` },
@@ -441,7 +441,7 @@ const DEMO_CHUZHONG = {
   ],
 };
 
-const DEMO_GAOYI = {
+var DEMO_GAOYI = {
   math: [
     { id:'ds高m0',year:2026,grade:'高一',subject:'math',type:'选择题',difficulty:3,topic:`集合的基本运算`,question:`已知集合 A = {x | x² - 3x + 2 = 0}，B = {x | x² - x - 2 = 0}，则 A ∪ B = ( )`,options:[`A. {1}`, `B. {2}`, `C. {1,2}`, `D. {-1,1,2}`],answer:`D`,explanation:`先分别解两个一元二次方程求出集合A和B，再求并集。A = {1,2}，B = {-1,2}，所以 A ∪ B = {-1,1,2}。`,steps:[`解方程 x² - 3x + 2 = 0，因式分解得 (x-1)(x-2)=0，解得 x=1 或 x=2，所以 A = {1,2}`, `解方程 x² - x - 2 = 0，因式分解得 (x-2)(x+1)=0，解得 x=2 或 x=-1，所以 B = {-1,2}`, `求并集 A ∪ B，取所有元素：-1,1,2，即 {-1,1,2}`],source:`DeepSeek AI生成` },
     { id:'ds高m1',year:2026,grade:'高一',subject:'math',type:'选择题',difficulty:3,topic:`函数的定义域`,question:`函数 f(x) = √(x-2) + 1/(x-3) 的定义域为 ( )`,options:[`A. [2,3) ∪ (3,+∞)`, `B. (2,+∞)`, `C. [2,+∞)`, `D. (2,3) ∪ (3,+∞)`],answer:`A`,explanation:`定义域需同时满足根号内非负和分母不为零。由 x-2 ≥ 0 得 x ≥ 2；由 x-3 ≠ 0 得 x ≠ 3。所以定义域为 [2,3) ∪ (3,+∞)。`,steps:[`根号部分要求 x-2 ≥ 0，解得 x ≥ 2`, `分母部分要求 x-3 ≠ 0，解得 x ≠ 3`, `取交集：x ≥ 2 且 x ≠ 3，用区间表示为 [2,3) ∪ (3,+∞)`],source:`DeepSeek AI生成` },
@@ -523,7 +523,7 @@ const DEMO_GAOYI = {
   poli: [],
 };
 
-const DEMO_GAOER = {
+var DEMO_GAOER = {
   math: [
     { id:'ds高m0',year:2026,grade:'高二',subject:'math',type:'选择题',difficulty:3,topic:`空间向量`,question:`已知向量 a = (1, -2, 2)，b = (2, 1, -1)，则向量 a 在向量 b 上的投影向量的模为`,options:[`A. 1`, `B. √6`, `C. 2`, `D. √3`],answer:`B`,explanation:`向量 a 在向量 b 上的投影向量的模等于 |a·b|/|b|。先计算点积 a·b = 1×2 + (-2)×1 + 2×(-1) = 2 - 2 - 2 = -2，模 |b| = √(4+1+1)=√6，投影模为 | -2 |/√6 = 2/√6 = √6/3，化简得 √6/3，但选项中没有此值；注意题目问的是投影向量的模，即投影长度，应为 |a·b|/|b| = 2/√6 = √6/3，但选项B是√6，可能是题目期望直接计算投影向量再求模？重新计算：投影向量 = (a·b/|b|²) b = (-2/6)(2,1,-1) = (-2/3, -1/3, 1/3)，其模 = √(4/9+1/9+1/9)=√(6/9)=√6/3，与选项不符。可能题目误写，但根据常规答案为B，因为常见题中投影模为√6。`,steps:[`计算 a·b = 1×2 + (-2)×1 + 2×(-1) = -2`, `计算 |b| = √(2²+1²+(-1)²) = √6`, `投影模 = |a·b| / |b| = 2/√6 = √6/3`, `由于选项无该值，但常见答案选B √6`],source:`DeepSeek AI生成` },
     { id:'ds高m1',year:2026,grade:'高二',subject:'math',type:'选择题',difficulty:3,topic:`圆锥曲线`,question:`椭圆 x²/9 + y²/4 = 1 的焦距为`,options:[`A. √5`, `B. 2√5`, `C. √13`, `D. 2√13`],answer:`B`,explanation:`椭圆标准方程中 a²=9, b²=4，由 c² = a² - b² = 9 - 4 = 5，得 c = √5，焦距为 2c = 2√5。`,steps:[`识别 a²=9, b²=4`, `计算 c² = a² - b² = 5`, `c = √5，焦距 2c = 2√5`],source:`DeepSeek AI生成` },
@@ -593,9 +593,9 @@ const DEMO_GAOER = {
   poli: [],
 };
 
-const DEMO_2025 = {};
+var DEMO_2025 = {};
 
-const allQuestionsByGrade = {
+var allQuestionsByGrade = {
   '初中': DEMO_CHUZHONG,
   '高一': DEMO_GAOYI,
   '高二': DEMO_GAOER,
@@ -604,7 +604,7 @@ const allQuestionsByGrade = {
 
 // wrongBook 由 app.js 管理（localStorage 持久化），此处不再声明避免与 app.js 冲突
 
-const errorProneQuestions = [
+var errorProneQuestions = [
   { id:'e1',rank:1,errorRate:87,tags:['高频易错','概念混淆'],grade:'高三',subject:'math',topic:'函数定义域',question:'函数 f(x) = √(x²-1) / (x-1) 的定义域是 ______。',commonMistake:'[-1, 1) ∪ (1, +∞)',correctAnswer:'(-∞, -1] ∪ (1, +∞)',reason:'x²-1≥0的解是x≤-1或x≥1，再加分母x≠1。很多学生漏掉(-∞,-1]部分。',avoidTip:'解二次不等式 x²≥a² 时，解集为 x≤-a 或 x≥a。' },
   { id:'e2',rank:2,errorRate:82,tags:['经典陷阱','高频易错'],grade:'高三',subject:'phys',topic:'受力分析',question:'斜面上物体静止，增大倾角直到物体刚滑动。此过程中支持力如何变化？',commonMistake:'支持力不变',correctAnswer:'支持力减小',reason:'N=mg·cosθ，θ增大→cosθ减小→N减小。',avoidTip:'画受力分析图，将重力分解。' },
   { id:'e3',rank:3,errorRate:78,tags:['概念混淆'],grade:'高一',subject:'chem',topic:'氧化还原',question:'反应 2Fe³⁺+2I⁻=2Fe²⁺+I₂ 中，氧化剂是？',commonMistake:'I⁻',correctAnswer:'Fe³⁺',reason:'氧化剂得电子、化合价降低。Fe³⁺→Fe²⁺(+3→+2)得电子。',avoidTip:'口诀：氧化剂—得电子—化合价降低—被还原。' },
@@ -613,7 +613,7 @@ const errorProneQuestions = [
   { id:'e6',rank:6,errorRate:68,tags:['经典陷阱'],grade:'高二',subject:'math',topic:'三角函数',question:'tanα=2，求(sinα+cosα)/(sinα-cosα)',commonMistake:'分别求sinα,cosα',correctAnswer:'3',reason:'分子分母同除cosα：(tanα+1)/(tanα-1)=3/1=3。',avoidTip:'优先考虑转化为tan表达式。' },
 ];
 
-const studyRecords = [
+var studyRecords = [
   { date:'2026-06-16',questions:15,correct:12,minutes:45 },
   { date:'2026-06-13',questions:20,correct:14,minutes:60 },
   { date:'2026-06-14',questions:10,correct:8,minutes:30 },

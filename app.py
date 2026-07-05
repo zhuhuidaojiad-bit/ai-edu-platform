@@ -173,5 +173,12 @@ def api_stats():
     return jsonify({'success': True, 'stats': {'total_codes': total_codes, 'active_codes': active_codes,
                                                 'total_users': total_users, 'active_sessions': active_sessions}})
 
+@app.after_request
+def add_no_cache(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5050, debug=False)
+    app.run(host='0.0.0.0', port=5052, debug=False)

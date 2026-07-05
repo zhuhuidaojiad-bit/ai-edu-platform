@@ -215,7 +215,7 @@
 <div class="confetti-container" id="confettiContainer"></div>
 
 <!-- 登录弹窗 -->
-<div class="modal-overlay hidden" id="loginModal">
+<div class="modal-overlay" id="loginModal" style="display:flex">
   <div class="modal-card" id="loginCard">
     <div class="modal-icon">🎓</div>
     <h2 class="modal-title">欢迎来到 AI 智慧学伴</h2>
@@ -253,12 +253,19 @@
 <!-- KaTeX from China-friendly CDN -->
 <script src="https://cdn.bootcdn.net/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" defer></script>
+<script>
+window.onerror = function(msg, url, line) {
+  var el = document.getElementById('qzBody');
+  if(el) el.innerHTML = '<div style="color:red;padding:20px;"><b>JS错误:</b> ' + msg + '<br>文件: ' + url + '<br>行号: ' + line + '</div>';
+};
+</script>
 <script src="js/data.js" defer></script>
 <script src="js/gaokao_questions.js" defer></script>
 <script src="js/gaoyi_questions.js" defer></script>
 <script src="js/gaoer_questions.js" defer></script>
 <script src="js/anhui_zhongkao.js" defer></script>
 <script src="js/hard_questions.js" defer></script>
+<script src="js/generated_questions.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>
 </html>
